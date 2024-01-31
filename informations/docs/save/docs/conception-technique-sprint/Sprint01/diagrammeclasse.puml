@@ -1,0 +1,124 @@
+@startuml
+
+
+package "fr.icdc.dei.dfp.ta.ta5.batch"{
+
+    package "model"{
+        class LigneFichierEtablissement{
+        /' Récupération des données brutes au format String '/
+            serviceInstructeur : String
+            anneeCampagne : String
+            numeroSequentiel : String
+            siret : String
+            uai : String
+            public sigle : String
+            public raisonSociale : String
+        /' Les données associées à l'adresse ne sont pas encore traitées '/
+            telephone : String
+            mail : String
+            dispensaireFormation : String
+            codeRncp : String
+            typeDiplome : String
+            formationDispensee : String
+            niveauFormation : String
+        }
+
+        package "entity"{
+            class WrkEtablissement{
+            /' Données brutes => table wrk01_etablissement '/
+                id : Long
+                String :typeliste
+                serviceInstructeur : String
+                anneeCampagne : String
+                numeroSequentiel : String
+                siret : String
+                uai : String
+                sigle : String
+                raisonSociale : String
+            /' Les données associées à l'adresse ne sont pas encore traitées '/
+                telephone : String
+                mail : String
+                dispensaireFormation : String
+                codeRncp : String
+                typeDiplome : String
+                formationDispensee : String
+                niveauFormation : String
+            }
+
+            class Formation{
+                codeRncp : string
+                typeDiplome : String
+                formationDispensee : String
+                niveauFormation : short
+            }
+
+            class Etablissement{
+                siret : long
+                uai : String
+                sigle : String
+                raisonSociale : String
+            /' Les données associées à l'adresse ne sont pas encore traitées '/
+                telephone : int
+                mail : String
+                dispensaireFormation : boolean
+            }
+        }
+    }
+
+    package "step"{
+
+
+        package "nettoyage"{
+            class NettoyageTablesTasklet{}
+        }
+
+        package "importbrut"{
+            interface WrkEtablissementMapper{
+                 LigneFichierEtablissementToWrkEtablissement(LigneFichierEtablissement) : WrkEtablissement
+            }
+            class FichierEtablissementReader{}
+            class FichierEtablissementProcessor{}
+            class WrkEtablissementWriter{}
+        }
+
+        package "alimentationfinale"{
+            interface EtablissementMapper{
+                 WrkEtablissementToEtablissementBeneficiaire(WrkEtablissement) : EtablissementBeneficiaire
+            }
+            interface FormationMapper{
+                 WrkEtablissementToFormation(WrkEtablissement) : Formation
+            }
+            class WrkEtablissementPagingReader{}
+            class WrkEtablissementProcessor{}
+            class EtablissementFormationWriter{}
+        }
+    }
+}
+
+class JpaPagingItemReader<T>{}
+
+class JpaItemWriter<T>{}
+
+interface Tasklet{
+    execute(contribution, chunkContext) : RepeatStatus
+}
+
+class FlatFileItemReader{}
+
+interface ItemProcessor{}
+
+class JpaItemWriter{}
+
+NettoyageTablesTasklet .U.|> Tasklet
+FichierEtablissementReader -U-|> FlatFileItemReader
+FichierEtablissementProcessor ..|> ItemProcessor
+WrkEtablissementWriter --|> JpaItemWriter
+WrkEtablissementPagingReader -U-|> JpaPagingItemReader
+EtablissementFormationWriter -U-|> JpaItemWriter
+WrkEtablissementPagingReader -U- WrkEtablissement
+EtablissementFormationWriter -U- Etablissement
+EtablissementFormationWriter -U- Formation
+FichierEtablissementReader -- LigneFichierEtablissement
+NettoyageTablesTasklet -U- WrkEtablissement
+
+@enduml

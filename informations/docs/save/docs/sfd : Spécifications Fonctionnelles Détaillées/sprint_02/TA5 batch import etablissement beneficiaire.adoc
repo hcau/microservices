@@ -1,0 +1,290 @@
+= TA5 batch ingestion des données
+:icons: font
+
+//:section-refsig: ME001
+== Batch import établissement bénéficiaire
+[cols="3,7"]
+|===
+h|Dépôt du fichier à ingérer
+a| file:[FREC]/ta5-batch-import-etablissements
+h|Objectifs
+a|* vérifier sa bonne conformité
+a|* Ingérer le fichier contenant des données des établissements bénéficiaires et des formations à traiter et . Etablir un rapport sur les non conformités du fichier.
+h|Acteurs
+a|* Opérateur : dépôt des fichiers dans le répertoire INPUT.
+* Opérateur : lancement de l'application sur le traitement d'ingestion des fichiers.
+|===
+
+=== Scénario nominal  => cas d'un fichier vide pas rédigé
+====
+// faire un tableau nom step => description
+1. L'ingestion des donnnées et établissement du rapport d'erreurs sur la non conformité du fichier entrant
+Les étapes (les steps), sont les suivants :
+* "STEP_NETTOYAGE_TABLE_TRAVAIL"
+* "STEP_IMPORT_BRUT_TABLE_INTERMEDIAIRE"
+* "STEP_VALIDATION_DONNEES"
+* "STEP_ALIMENTATION_TABLES_DEFINITIVES"
+* "STEP_GENERATION_RAPPORT"
+* "STEP_ENREGISTREMENT_LISTE_IMPORTEE"
+
+[horizontal]
+1.a.:: Nettoyage de la table de travail
+
+Avant tout traitement d'un nouveau fichier, la table de travail etablissement est complètement vidée.
+
+Cette table accueillera les données brutes du fichier plat à traiter lors des prochaines étapes (step).
+
+[horizontal]
+1.b.:: Import brut des données dans la table intermédiaire "wrk01_etablissement"
+
+Les données provenant du fichier plat (extension csv) sont importées, ligne par ligne.
+
+Ces données sont ensuite écrites dans la table de travail etablissement" sans aucune vérification ni traitement.
+
+[horizontal]
+1.c.:: Validation des données
+
+Les données brutes, stockées dans la table de travail "wrk01_etablissement" doivent correspondre à l'ensemble des conditions décrites ici : cf.  <<Les données obligatoires>>
+
+Si celles-ci ne sont pas conformes, alors elles sont écartées du flux principale de traitement et stockées dans une liste d'objets objet "WrkError".
+
+Un rapport d'erreurs sera produit dans une prochaine étape : cf. Génération du rapport.
+
+Seules les lignes (les enregistrements) conformes aux conditions cf.  <<Les données obligatoires>>, sont traitées dans le flux principal par la suite.
+
+[horizontal]
+1.d.:: Alimentation des tables définitives
+
+A cette étape, le flux ne comporte que les lignes (les enregistrement) conformes aux conditions, cf .....
+
+Ces enregistrements sont stockés dans les tables "tb02_etablissement_beneficiaire" et "tb03_formation" (cf détail ddddd).
+
+[horizontal]
+1.e.:: Génération du rapport
+
+Cette étape (ou step), concerne les enregistrements qui ne sont pas conformes, qui ont été écartés du flux de traitement et sauvegardés dans une liste d'objets "WrkError".
+
+Ce rapport a pour nommage, la convention suivante :
+TA_Etablissement_Beneficiaire_<AAAAMMJJ>_<typeListe>_<codeFournisseurListe>_<fournisseurListe>_<anneeCampagne>_<n°Sequentiel>
+
+ * AAAAMMJJ = date de création du fichier
+ * typeListe = N1 (national) ou R2 (préfecture) ou R3 (conseil régional)
+ * codeFournisseurListe = N01 (ministère) ou Rxx (région ; cf commentaire pour valeur xx)
+ * fournisseurListe = libellé du fournisseur (libre)
+ * anneeCampagne = année de la campagne (numérique longueur 4)
+ * n°Sequentiel = n° d'ordre du fichier Liste dans la campagne (numérique longueur 3)
+
+[horizontal]
+1.f.:: Enregistrement des listes importées
+
+Une première étape consiste à effectuer une requête, au niveau de la table "tb02_etablissement_beneficiaire" sur le premier enregistrement.
+
+Grâce aux paramètres de cette ligne récupérée, un nommage du fichier traité sera mis en forme suivant le formalisme suivant : cf § <<Les données obligatoires>>
+
+Ce fichier traité, est ensuite enregistré dans la table sssssss
+
+
+
+====
+//Par la suite, l'ingestion, devra respecter le traitement des fichiers suivant le numéro séquentiel ordonné.
+== Contrôles effectués sur le contenu du fichier.
+[cols="3,4,4,6,6"]
+|===
+h|Données
+h|Condition à respecter
+h|Format
+h|Si contrôle KO : +
+code erreur
+h|Si contrôle KO : +
+message erreur
+
+a|Type de liste
+a|Obligatoire
+a|Alpha
+a|"erreur.obligatoire"
+a|"Saisie obligatoire."
+a|Type de liste
+a|Taille: 2 car.
+a|Alpha
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+a|Code fournisseur
+a|Obligatoire
+a|Alpha
+a|"erreur.obligatoire"
+a|"Saisie obligatoire."
+a|Code fournisseur
+a|Taille: 3 car.
+a|Alpha
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+a|Année campagne
+a|Obligatoire
+a|Num
+a|"erreur.obligatoire"
+a|"Saisie obligatoire."
+a|Année campagne
+a|Nombre de 4 chiffres
+a|Num
+a|"erreur.format"
+a|"Format incorrect."
+a|Numéro séquentiel
+a|Obligatoire
+a|Num
+a|"erreur.obligatoire"
+a|"Saisie obligatoire."
+a|Numéro séquentiel
+a|Nombre de 3 chiffres
+a|Num
+a|"erreur.format"
+a|"Format incorrect."
+a|SIRET
+a|Obligatoire
+a|Num
+a|"erreur.obligatoire"
+a|"Saisie obligatoire."
+a|SIRET
+a|14 chiffres
+a|Num
+a|"erreur.format"
+a|"Format incorrect."
+a|UAI
+a|7 chiffres + 1 lettre
+a|Alpha
+a|"erreur.format"
+a|"Format incorrect."
+a|UAI
+a|Taille: 8 car.
+a|Alpha
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+a|Sigle
+a|Taille max: 50 car.
+a|Alpha
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+a|Raison sociale
+a|Obligatoire
+a|Alpha
+a|"erreur.obligatoire"
+a|"Saisie obligatoire."
+a|Raison sociale
+a|Taille max: 50 car.
+a|Alpha
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+a|Ligne 1 adresse
+a|Taille max: 38 car.
+a|Alpha
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+a|Ligne 2 adresse
+a|Taille max: 38 car.
+a|Alpha
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+a|Ligne 3 adresse
+a|Taille max: 38 car.
+a|Alpha
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+a|Ligne 4 adresse
+a|Taille max: 38 car.
+a|Alpha
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+a|Ligne 4 adresse
+a|Obligatoire
+a|Alpha
+a|"erreur.obligatoire"
+a|"Saisie obligatoire."
+a|Ligne 5 adresse
+a|Taille max: 38 car.
+a|Alpha
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+a|Ligne 6 adresse
+a|Taille max: 38 car.
+a|Alpha
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+a|Ligne 6 adresse
+a|Obligatoire
+a|Alpha
+a|"erreur.obligatoire"
+a|"Saisie obligatoire."
+a|Téléphone
+a|Obligatoire
+a|Alpha
+a|"erreur.obligatoire"
+a|"Saisie obligatoire."
+a|Téléphone
+a|10 chiffres
+a|Num
+a|"erreur.format"
+a|"Format incorrect."
+a|Mail
+a|Taille max: 50 car.
+a|Alpha
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+a|Mail
+a|Ne doit pas commencer par @
+
+Ne doit pas finir par @
+
+Doit comporter @
+a|Alpha
+a|"erreur.format"
+a|"Format incorrect."
+
+a|Dispense formation
+a|Taille: 1 car.
+a|"N" mais:
+code RNCP renseigné, et ou
+type de diplôme renseigné, et ou
+niveau formation renseigné
+a|"erreur.formation.donneesnonremplies"
+a|"Les champs doivent être renseignés."
+a|Dispense formation
+a|Taille: 1 car.
+a|"O" mais:
+code RNCP vide, et ou
+type de diplôme vide, et ou
+niveau formation vide
+a|"erreur.formation.donneesremplies"
+a|"Les champs doivent être vides."
+a|Code RNCP
+a|Taille max: 9 car.
+a|Alpha
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+a|Type de diplôme
+a|Taille max: 50 car.
+a|Alpha
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+a|Intitulé formation
+a|Taille max: 50 car.
+a|Alpha
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+
+a|Niveau formation
+a|Chiffre entre 1 et 5
+a|Num
+a|"erreur.format"
+a|"Format incorrect."
+a|Niveau formation
+a|Taille: 1 car.
+a|Num
+a|"erreur.taille.minmax"
+a|"Taille de colonne non respectée."
+
+//Les données d'entête doivent se retrouver dans les éléments du tableau
+
+// si dispense ==> alors code rncp est obligatoire si o et pas rempli si à n
+
+
+
+

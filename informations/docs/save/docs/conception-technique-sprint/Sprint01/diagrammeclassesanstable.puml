@@ -1,0 +1,57 @@
+@startuml
+
+
+package "batch"{
+
+    package "step"{
+
+        package "nettoyage"{
+            class NettoyageTablesTasklet{}
+        }
+
+        package "importbrut"{
+            interface WrkEtablissementMapper{
+                 LigneFichierEtablissementToWrkEtablissement(LigneFichierEtablissement) : WrkEtablissement
+            }
+            class FichierEtablissementReader{}
+            class FichierEtablissementProcessor{}
+            class WrkEtablissementWriter{}
+        }
+
+        package "alimentationfinale"{
+            interface EtablissementMapper{
+                 WrkEtablissementToEtablissementBeneficiaire(WrkEtablissement) : EtablissementBeneficiaire
+            }
+            interface FormationMapper{
+                 WrkEtablissementToFormation(WrkEtablissement) : Formation
+            }
+            class WrkEtablissementPagingReader{}
+            class WrkEtablissementProcessor{}
+            class EtablissementFormationWriter{}
+        }
+    }
+}
+
+class JpaPagingItemReader<T>{}
+
+class JpaItemWriter<T>{}
+
+interface Tasklet{
+    execute(contribution, chunkContext) : RepeatStatus
+}
+
+class FlatFileItemReader{}
+
+interface ItemProcessor{}
+
+class JpaItemWriter{}
+
+NettoyageTablesTasklet .U.|> Tasklet
+FichierEtablissementReader -U-|> FlatFileItemReader
+FichierEtablissementProcessor ..|> ItemProcessor
+WrkEtablissementWriter --|> JpaItemWriter
+WrkEtablissementPagingReader -U-|> JpaPagingItemReader
+EtablissementFormationWriter -U-|> JpaItemWriter
+FichierEtablissementReader -- LigneFichierEtablissement
+
+@enduml

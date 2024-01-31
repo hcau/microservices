@@ -1,0 +1,349 @@
+= Solde TA - Dictionnaire de données
+:author: Jérémy Blanc
+:email: jeremy.blanc@caissedesdepots.fr
+:revnumber: 1.0
+:revdate: 2022-02-15
+:revremark: Init du document
+:sectnums:
+:sectnumlevels: 5
+:source-highlighter: coderay
+:toc:
+:toc-title: Sommaire
+:toclevels: 3
+
+
+Ce document a pour but de référencer la conception du modèle de données et la justification détaillée de chaque orientation choisie dans ce modèle.
+
+<<<
+== Objectif
+
+L'objectif de la plateforme est de :
+
+* *Stocker les données du solde de la taxe d'apprentissage*
+** Collecter une fraction de la taxe d'apprentissage à laquelle sont assujetties les entreprises
+* *Restituer les informations*
+** Aux 2 acteurs :
+*** Les entreprises : consulter, mettre à jour les "flèchages"
+*** Les établissement : consulter les informations concernant la taxe d'apprentissage
+* *Permettre une saisie de données*
+** Répartir le solde de la taxe dans divers établissements bénéficiaire via un "flèchage" choisi par les entreprises
+** Etablir une *liaison chiffrée (monétaire)* entre établissement bénéficiaire / formation ET entreprise assujettie
+
+
+<<<
+== Modèle de données
+
+.Modèle de données
+plantuml::schemas-sans-replication-de-donnees.puml[]
+
+[NOTE]
+====
+L'orientation du modèle est de *ne pas dupliquer les informations.*
+
+* _Exemple :_
+** Ne pas répéter N fois 1 même établissement
+** Ne pas répéter N fois 1 même formation d'1 établissement
+
+D'une campagne sur l'autre, ce sont les *liens entre les éléments qui sont "reportés".*
+
+Cela permet le suivi d'un même élément (son évolution), sur N années (N campagnes).
+====
+
+
+
+<<<
+== Données
+
+=== Coeur
+
+==== Campagnes
+
+===== Description
+
+[quote]
+____
+Exercice / Année de collecte et flêchage du solde de la taxe d'apprentissage des entreprises assujetties vers les établissements bénéficiaires.
+____
+
+===== Structure
+
+.Table *TB01_CAMPAGNE*
+[cols="4,2m,1,1,8", options="header"]
+|===
+|Colonne |Type |NULL |PK |Description
+|ID     |smallint |Non |Oui |Identifiant technique
+|ANNEE  |smallint |Non |Non |Année de la campagne
+|ACTIVE |boolean  |Non |Non
+a|Campagne en cours ?
+
+1 seule campagne active possible
+|===
+
+===== Exemple
+
+.Campagnes - Exemple de contenu
+[format="csv", separator=";", options="header"]
+|===
+include::dataset/campagnes.csv[]
+|===
+
+
+<<<
+==== Etablissements bénéficiaires
+
+===== Description
+
+[quote]
+____
+Organisme qui va percevoir une somme au titre du solde de la taxe d'apprentissage.
+____
+
+===== Structure
+
+.Table *TB02_ETABLISSEMENT_BENEFICIAIRE*
+[cols="4,2m,1,1,8", options="header"]
+|===
+|Colonne |Type |NULL |PK |Description
+|ID                    |bigint      |Non |Oui |Identifiant technique
+|SIRET                 |varchar(14) |Non |Non |ID du Système d'Identification du Répertoire des ETablissements
+|UAI                   |varchar(9)  |Oui |Non |Unité Administrative Immatriculée (Répertoire National des Etablissements)
+|SIGLE                 |varchar(50) |Oui |Non |Diminutif de la dénomination sociale
+|RAISON_SOCIALE        |varchar(80) |Non |Non |Nom complet de l'établissement
+|DISPENSAIRE_FORMATION |boolean     |Oui |Non |`false` si l'établissement n'a pas de formation associée
+|MAIL                  |varchar(50) |Oui |Non |Adresse e-mail de l'établissement
+|TELEPHONE             |varchar(10) |Oui |Non |Numéro de téléphone de l'établissement
+|===
+
+[WARNING]
+====
+*Exemple de dataset :*
+
+* https://www.prefectures-regions.gouv.fr/grand-est/Region-et-institutions/L-action-de-l-etat/Taxe-d-apprentissage/Taxe-d-apprentissage-2022-elaboration-des-listes-regionales-des-etablissements-et-organismes-habilites-a-percevoir-le-solde-de-la-taxe-d-apprentissage
+
+Dans cet exemple, *les SIRET ne sont pas disponibles.*
+
+A des fins de tests, ceux-ci sont récupérables manuellement sur le site :
+
+* https://www.societe.com/
+====
+
+[WARNING]
+====
+*2e remarque sur ce "dataset" :*
+
+* Les établissements sont répétés, mais avec des noms différents (mais un même UAI)
+* Le travail ds services intructeurs devra consister à ne sortir :
+** Qu'1 seul nom
+** Correspondant à 1 seul SIRET
+** Et 1 seul UAI lorsqu'il s'agira d'un établissement scolaire
+====
+
+
+===== Exemple
+
+.Etablissements bénéficiaires - Exemple de contenu
+[format="csv", separator=";", options="header", cols="1,2,2,8"]
+|===
+include::dataset/etablissements-beneficiaires.csv[]
+|===
+
+<<<
+==== Formations
+
+===== Description
+
+[quote]
+____
+Formation dispensée par un établissement bénéficiaire.
+____
+
+===== Structure
+
+.Table *TB03_FORMATION*
+[cols="4,2m,1,1,8", options="header"]
+|===
+|Colonne |Type |NULL |PK |Description
+|ID                  |bigint      |Non |Oui |Identifiant technique
+|CODE_RNCP           |varchar(6)  |Oui |Non |Code RNCP (référence de la certification)
+|TYPE_DIPLOME        |varchar(50) |Non |Non |Code / Type de diplôme
+|FORMATION_DISPENSEE |varchar(50) |Non |Non |Libellé de la formation
+|ID_NIVEAU_FORMATION |smallint    |Non |Non |Référence au niveau de formation
+|===
+
+[WARNING]
+====
+En phase AVANT PROJET, il a été demandé à :
+
+* Isoler le catalogue de formation entre chaque établissement *quitte à ingérer n fois une même formation*
+
+Il en résulte :
+
+* Une *duplication des données* (visible dans la section ci-dessous), *qui*, en 1ère lecture, *semble dommage*
+
+_Cette documentation reste sur cette hypothèse, sauf si autorisation de faire autrement._
+====
+
+===== Exemple
+
+.Etablissements bénéficiaires - Exemple de contenu
+[format="csv", separator=";", options="header", cols="1,2,2,5,1"]
+|===
+include::dataset/formations.csv[]
+|===
+
+
+<<<
+==== Liaison Campagne / Etablissements / Formations
+
+===== Description
+
+[quote]
+____
+Définition d'une campagne donnée, avec sa configuration établissements bénéficiaires / formations dispensées.
+____
+
+===== Structure
+
+.Table *TB04_CAMPAGNE_ETABLISSEMENT_FORMATION*
+[cols="4,2m,1,1,8", options="header"]
+|===
+|Colonne |Type |NULL |PK |Description
+|ID_CAMPAGNE                   |smallint  |Non |Oui |Référence à la campagne
+|ID_ETABLISSEMENT_BENEFICIAIRE |bigint    |Non |Oui |Référence à l'établissement bénéficiaire
+|ID_FORMATION                  |bigint    |Oui |Oui |Référence à la formation dispensée
+|===
+
+===== Exemple
+
+.Etablissements bénéficiaires - Exemple de contenu
+[format="csv", separator=";", options="header", cols="1,1,1"]
+|===
+include::dataset/campagnes-etablissements-beneficiaires-formations.csv[]
+|===
+
+
+<<<
+=== "Référentiels"
+
+Par "référentiels", on désigne les données qui bougent peu, et auxquelles on fait référence via une codification donnée.
+
+Celles-ci sont intégrées via des scripts fixes.
+
+==== Services instructeur
+
+===== Description
+
+[quote]
+____
+Entité chargée d'actualiser la liste des établissements / formation d'une campagne donnée. Chaque service est doté d'un ou plusieurs référents / correspondants (points de contact privilégiés).
+____
+
+===== Structure
+
+.Table *TBREF01_SERVICE_INSTRUCTEUR*
+[cols="4,2m,1,1,8", options="header"]
+|===
+|Colonne |Type |NULL |PK |Description
+|ID      |smallint     |Non |Oui |Identifiant technique
+|NOM     |varchar(255) |Non |Non |Nom du service
+|===
+
+
+===== Exemple
+
+.Services instructeur - Exemple de contenu
+[format="csv", separator=";", options="header", cols="1,8"]
+|===
+include::dataset/services-instructeurs.csv[]
+|===
+
+
+<<<
+==== Niveaux de formation
+
+===== Description
+
+[quote]
+____
+Nomenclature nationale des niveaux fixée par la Commission statistique nationale de la formation professionnelle et de la promotion sociale.
+____
+
+===== Structure
+
+.Table *TBREF02_NIVEAU_FORMATION*
+[cols="4,2m,1,1,8", options="header"]
+|===
+|Colonne |Type |NULL |PK |Description
+|ID      |smallint     |Non |Oui |Identifiant technique
+|CODE    |varchar(20)  |Non |Non |Code du niveau de formation
+|LIBELLE |varchar(255) |Non |Non |Désignation du niveau de formation
+|===
+
+===== Exemple
+
+.Niveaux de formation - Exemple de contenu
+[format="csv", separator=";", options="header", cols="1,1,8"]
+|===
+include::dataset/niveaux-formation.csv[]
+|===
+
+
+<<<
+== Interrogation du modèle
+
+=== Etablissements d'une campagne donnée
+
+.Requête
+[source,sql]
+----
+include::sql/queries.sql[tag=query-etablissements-campagne]
+----
+
+.Résultat
+[source]
+----
+id|siret         |uai     |raison_sociale                              |
+--+--------------+--------+--------------------------------------------+
+ 1|26670004600011|0672694P|CENTRE HOSPITALIER DEPARTEMENTAL BISCHWILLER|
+ 4|26670011100013|0672337B|CENTRE HOSPITALIER DE HAGUENAU              |
+ 3|26670031900012|0672981B|CENTRE HOSPITALIER D'ERSTEIN                |
+ 2|26670602700015|0672339D|ETS PUBLIC DE SANTE ALSACE-NORD             |
+----
+
+<<<
+=== Catalogue de formations d'1 établissement pour 1 campagne donnée
+
+.Requête
+[source,sql]
+----
+include::sql/queries.sql[tag=query-formations-etablissement-campagne]
+----
+
+.Résultat
+[source]
+----
+id|code_rncp|formation_dispensee           |type_diplome|
+--+---------+------------------------------+------------+
+ 2|8940     |DIPLOME D'ETAT D'INFIRMIER    |DEI         |
+ 3|35830    |DIPLOME D'ETAT D'AIDE-SOIGNANT|DEAS        |
+----
+
+<<<
+=== Comptage du nombre de formations par établissement pour 1 campagne donnée
+
+.Requête
+[source,sql]
+----
+include::sql/queries.sql[tag=query-count-formations-etablissement-campagne]
+----
+
+.Résultat
+[source]
+----
+siret         |raison_sociale                              |count|
+--------------+--------------------------------------------+-----+
+26670004600011|CENTRE HOSPITALIER DEPARTEMENTAL BISCHWILLER|    1|
+26670011100013|CENTRE HOSPITALIER DE HAGUENAU              |    2|
+26670031900012|CENTRE HOSPITALIER D'ERSTEIN                |    1|
+26670602700015|ETS PUBLIC DE SANTE ALSACE-NORD             |    2|
+----

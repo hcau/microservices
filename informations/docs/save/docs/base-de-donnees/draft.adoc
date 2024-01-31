@@ -1,0 +1,17 @@
+Rédaction STD
+
+Environnement technique
+
+JDK 11
+Maven 3.6
+Spring boot 2.3
+PostgreSQL 11
+Données et Fonctionnement de CP7
+
+04-1 Base de données
+04-2 API REST CP7
+04-3 Diagramme de séquences
+04-4 Controles et gestion des erreurs CP7
+04-5 Conception technique par sprint
+04-6 Fiches previsionelles de livraison
+ 

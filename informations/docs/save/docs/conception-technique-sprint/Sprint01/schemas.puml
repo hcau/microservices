@@ -1,0 +1,101 @@
+@startuml
+
+package "Campagne courante"{
+
+    class TBTA02_ETABLISSEMENT_BENEFICIAIRE{
+        __colonnes__
+        **<<PRIMARY KEY>> ID_ETABLISSEMENT_BENEFICIAIRE : bigint**,
+        SIRET : varchar(14) NOT NULL,
+        UAI : varchar(9),
+        SIGLE  : varchar(50),
+        RAISON_SOCIALE : varchar(80) NOT NULL,
+        DISPENSAIRE_FORMATION : varchar(1), /' flag à O ou N '/
+        MAIL : varchar(50)
+        TELEPHONE : varchar(10)
+
+
+/' Gérer l'adresse ==> ligne adresse 1, ligne adresse 2, etc....
+        DESCRIPTION : varchar(50),
+        DOCUMENT_ETABLISSEMENT : varchar(10000),
+        ADRESSE : varchar(50) NOT NULL,
+        COMPLEMENT_ADRESSE : varchar(50),
+        CODE_POSTAL : smallint NOT NULL,
+        COMMUNE : varchar(50),
+'/
+        __Foreign Keys__
+        ID_CAMPAGNE : smallint NOT NULL,
+        ID_DERNIERE_LISTE_ETABLISSEMENT_BENEFICIAIRE : smallint NOT NULL
+
+    }
+
+
+    class TBTA03_FORMATION{
+        __colonnes__
+        **<<PRIMARY KEY>> ID_FORMATION : bigint**,
+        CODE_RNCP : smallint,
+        TYPE_DIPLOME : varchar(50) NOT NULL,
+        FORMATION_DISPENSEE : varchar(50) NOT NULL,
+        /' NIVEAU_FORMATION '/
+        __Foreign Keys__
+        ID_ETABLISSEMENT_BENEFICIAIRE : bigint NOT NULL,
+        ID_NIVEAU_FORMATION : smallint NOT NULL,
+    }
+
+
+    class TBTA01_CAMPAGNE{
+        __colonnes__
+        **<<PRIMARY KEY>> ID_CAMPAGNE : smallint**,
+        ANNEE : smallint NOT NULL,
+        ACTIVE : varchar(1)
+    }
+
+    TBTA02_ETABLISSEMENT_BENEFICIAIRE "1" -- "*" TBTA03_FORMATION : propose >
+    TBTA03_FORMATION "*" *-u- "1" TBTAPAR01_NIVEAU_FORMATION
+}
+
+package "Historisation"{
+
+    class TBTAHISTO01_LISTE_ETABLISSEMENT_BENEFICIAIRE{
+        __colonnes__
+        **<<PRIMARY KEY>> ID_LISTE_ETABLISSEMENT_BENEFICIAIRE : smallint**,
+        /' TYPE_LISTE '/
+        /' SERVICE_INSTRUCTEUR '/
+        NUMERO_SEQUENTIEL : smallint NOT NULL,
+        DATE_INGESTION : date NOT NULL,
+        NOM_FICHIER : varchar(80) NOT NULL, /' préciser la longueur'/
+        __Foreign Keys__
+        ID_TYPE_LISTE : smallint NOT NULL,
+        ID_SERVICE_INSTRUCTEUR : smallint NOT NULL,
+        ID_ETABLISSEMENT_BENEFICIAIRE : bigint NOT NULL
+    }
+    TBTAHISTO01_LISTE_ETABLISSEMENT_BENEFICIAIRE "1" *-l- "1" TBTAPAR02_TYPE_LISTE
+    TBTAHISTO01_LISTE_ETABLISSEMENT_BENEFICIAIRE "1" *-l- "1" TBTAPAR03_SERVICE_INSTRUCTEUR
+    TBTAHISTO01_LISTE_ETABLISSEMENT_BENEFICIAIRE "*" *-l- "1" TBTA02_ETABLISSEMENT_BENEFICIAIRE :< possède
+
+
+    class TBTAPAR01_NIVEAU_FORMATION{
+        __colonnes__
+        **<<PRIMARY KEY>> ID_NIVEAU_FORMATION : smallint**,
+        CODE : varchar(20) NOT NULL,
+        LIBELLE : varchar(255) NOT NULL,
+    }
+
+    class TBTAPAR02_TYPE_LISTE{
+        __colonnes__
+        **<<PRIMARY KEY>> ID_TYPE_LISTE : smallint**,
+        CODE : varchar(20) NOT NULL,
+        LIBELLE : varchar(255) NOT NULL
+    }
+
+    class TBTAPAR03_SERVICE_INSTRUCTEUR{
+        __colonnes__
+        **<<PRIMARY KEY>> ID_SERVICE_INSTRUCTEUR : smallint**,
+        CODE : varchar(3) NOT NULL, /' Valeurs N01 / Rxx (xx = 01 à 18) '/
+        LIBELLE : varchar(100) NOT NULL,
+    }
+
+    TBTA02_ETABLISSEMENT_BENEFICIAIRE "1" *-l- "1" TBTA01_CAMPAGNE
+    TBTAHISTO01_LISTE_ETABLISSEMENT_BENEFICIAIRE "1" -l-* "1" TBTA02_ETABLISSEMENT_BENEFICIAIRE
+}
+
+@enduml

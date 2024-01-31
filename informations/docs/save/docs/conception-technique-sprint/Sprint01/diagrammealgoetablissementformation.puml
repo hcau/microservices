@@ -1,0 +1,20 @@
+@startuml
+state etablissementEnBase <<choice>>
+state etablissementDansContexteStep <<choice>>
+state apresProcessor<<join>>
+[*] --> WrketablissementRecuperee : "Récupérer WrkEtablissement et éventuellement Etablissement en base"
+WrketablissementRecuperee --> etablissementEnBase : "Trouver en base si l'entité Etablissement est présent?"
+etablissementEnBase --> EntiteRecupereeDepuisBase : "oui"
+
+
+etablissementEnBase --> etablissementDansContexteStep : "non : trouver dans le ''contexte step'' si l'entité Etablissement?"
+etablissementDansContexteStep --> entiteRecupereDansContexteStep : "oui"
+etablissementDansContexteStep --> nouvelleEntiteCree : "non"
+
+
+EntiteRecupereeDepuisBase --> apresProcessor
+entiteRecupereDansContexteStep --> apresProcessor
+nouvelleEntiteCree --> apresProcessor
+
+apresProcessor --> formationEnregistreeEnBase : "Ecriture de Formation avec l'entité Etablissement"
+@enduml

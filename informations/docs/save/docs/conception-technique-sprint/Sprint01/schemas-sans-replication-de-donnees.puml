@@ -1,0 +1,96 @@
+@startuml
+
+class TB01_CAMPAGNE {
+    __Colonnes__
+    **<<PK>> ID : smallint**
+    ANNEE : smallint NOT NULL
+    ACTIVE : boolean  NOT NULL
+}
+
+
+class TB02_ETABLISSEMENT_BENEFICIAIRE {
+    __Colonnes__
+    **<<PK>> ID : bigint**
+    SIRET : varchar(14) NOT NULL
+    UAI : varchar(9)
+    SIGLE : varchar(50)
+    RAISON_SOCIALE : varchar(80) NOT NULL
+    DISPENSAIRE_FORMATION : boolean
+    MAIL : varchar(50)
+    TELEPHONE : varchar(10)
+}
+
+
+class TB03_FORMATION {
+    __Colonnes__
+    **<<PK>> ID : bigint**
+    CODE_RNCP : varchar(6)
+    TYPE_DIPLOME : varchar(50) NOT NULL
+    FORMATION_DISPENSEE : varchar(50) NOT NULL
+
+    __Foreign Keys__
+    ID_NIVEAU_FORMATION : smallint NOT NULL
+}
+
+
+class TB04_CAMPAGNE_ETABLISSEMENT_FORMATION #e3f7ec {
+    __Colonnes__
+    **<<PK>> <<FK>> ID_CAMPAGNE : smallint NOT NULL**
+    **<<PK>> <<FK>> ID_ETABLISSEMENT_BENEFICIAIRE : bigint NOT NULL**
+    **<<PK>> <<FK>> ID_FORMATION : bigint NULL**
+}
+
+
+class TBREF02_NIVEAU_FORMATION {
+    __Colonnes__
+    **<<PK>> ID : smallint**
+    CODE : varchar(20)  NOT NULL
+    LIBELLE : varchar(255) NOT NULL
+}
+
+
+TB01_CAMPAGNE "1" -down- "*" TB04_CAMPAGNE_ETABLISSEMENT_FORMATION
+TB02_ETABLISSEMENT_BENEFICIAIRE "1" -left- "*" TB04_CAMPAGNE_ETABLISSEMENT_FORMATION
+TB03_FORMATION "0..1" -up- "*" TB04_CAMPAGNE_ETABLISSEMENT_FORMATION
+
+TB03_FORMATION "*" -down- "1" TBREF02_NIVEAU_FORMATION
+
+
+
+/'package "Historisation"{
+
+    class TBHISTO01_LISTE_ETABLISSEMENT_BENEFICIAIRE{
+        __Colonnes__
+        **<<PK>> ID_LISTE_ETABLISSEMENT_BENEFICIAIRE : smallint**,
+        NUMERO_SEQUENTIEL : smallint NOT NULL,
+        DATE_INGESTION : date NOT NULL,
+        NOM_FICHIER : varchar(80) NOT NULL,
+        __Foreign Keys__
+        ID_TYPE_LISTE : smallint NOT NULL,
+        ID_SERVICE_INSTRUCTEUR : smallint NOT NULL,
+        ID_ETABLISSEMENT_BENEFICIAIRE : bigint NOT NULL
+    }
+    TBHISTO01_LISTE_ETABLISSEMENT_BENEFICIAIRE "1" *-l- "1" TBREF02_TYPE_LISTE
+    TBHISTO01_LISTE_ETABLISSEMENT_BENEFICIAIRE "1" *-l- "1" TBREF03_SERVICE_INSTRUCTEUR
+    TBHISTO01_LISTE_ETABLISSEMENT_BENEFICIAIRE "*" *-l- "1" TB02_ETABLISSEMENT_BENEFICIAIRE :< possède
+
+
+    class TBREF02_TYPE_LISTE{
+        __Colonnes__
+        **<<PK>> ID_TYPE_LISTE : smallint**,
+        CODE : varchar(20) NOT NULL,
+        LIBELLE : varchar(255) NOT NULL
+    }
+
+    class TBREF03_SERVICE_INSTRUCTEUR{
+        __Colonnes__
+        **<<PK>> ID_SERVICE_INSTRUCTEUR : smallint**,
+        CODE : varchar(3) NOT NULL,
+        LIBELLE : varchar(100) NOT NULL,
+    }
+
+    TBHISTO01_LISTE_ETABLISSEMENT_BENEFICIAIRE "1" -l-* "1" TB02_ETABLISSEMENT_BENEFICIAIRE
+}
+'/
+
+@enduml

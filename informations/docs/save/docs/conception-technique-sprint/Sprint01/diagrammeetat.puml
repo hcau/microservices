@@ -1,0 +1,9 @@
+@startuml
+    [*] --> Tables_de_travail_vides : vider tables de travail
+    Tables_de_travail_vides --> Données_brutes_importées : importer les données brutes, format de nommage du fichier ingéré\n TA_Etablissement_Beneficiaire_<AAAAMMJJ>_<typeListe>_<serviceInstructeur>_<anneeCampagne>_<n°Sequentiel>
+    Données_brutes_importées : données ingérées dans la table wrk01_etablissement
+    Données_brutes_importées --> Données_finales_importées : importer les données dans les tables finales
+    Données_finales_importées : données relatives à l'établissement importées dans la table finale tbta02_etablissement_beneficiaire
+    Données_finales_importées : données relatives à la formation importées dans la table finale tbta03_formation
+    Données_finales_importées --> [*]
+@enduml
